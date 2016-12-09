@@ -1,101 +1,41 @@
-		var text = new PointText({
-		position: view.center + [0, 200],
-		fillColor: 'black',
-		justification: 'center',
-		fontSize: 20
-	});
+		var width = 312;
+		var height = 390;
 
-	var originals = new Group({ insert: false }); // Don't insert in DOM.
+		var count = 0;
+		var position = new paper.Point(width / 2, height / 2);
+		var spiralPath = new paper.Path();
+		spiralPath.fillColor = 'red';
+		spiralPath.closed = true;
 
-	var square = new Path.Rectangle({
-	position: view.center,
-	size: 300,
-	parent: originals,
-	fillColor: 'white'
-});
 
-// Make a ring using subtraction of two circles:
-var inner = new Path.Circle({
-center: view.center,
-radius: 100,
-parent: originals,
-fillColor: 'white'
-});
+		function growSpiral() {
+			var count = 0;
+			count++;
+			var vector = new paper.Point();
+		/*
+		vector.angle = count * 5;
+		vector.length = count / 100;
+		*/
+		/*
+		var vector = new paper.Point({
+			angle: count * 5,
+			length: count / 100
+		});
 
-var outer = new Path.Circle({
-center: view.center,
-radius: 140,
-parent: originals,
-fillColor: 'white'
-});
+		var rot = vector.rotate(90);
+		rot.length = .2;
+		path.add(position + vector - rot);
+		path.insert(0, position + vector + rot);
+		position += vector;
+		*/
+	}
 
-var ring = outer.subtract(inner);
-
-var operations = ['unite', 'intersect', 'subtract', 'exclude', 'divide'];
-var colors = ['red', 'green', 'blue', 'black'];
-var curIndex = -1;
-var operation, result, activeItem;
-
-// Change the mode every 3 seconds:
-setInterval(setMode, 3000);
-
-// Set the initial mode:
-setMode();
-
-function setMode() {
-curIndex++;
-if (curIndex == operations.length * 2)
-curIndex = 0;
-operation = operations[curIndex % operations.length];
+/*
+function onFrame(event)
+{
+	for (var i = 0, l = count / 36 + 1; i < l; i++) {
+	growSpiral();
 }
-
-function onMouseDown(event) {
-var hitResult = originals.hitTest(event.point);
-activeItem = hitResult && hitResult.item;
+path.smooth();
 }
-
-function onMouseDrag(event) {
-if (activeItem)
-activeItem.position = event.point;
-}
-
-function onMouseUp() {
-activeItem = null;
-square.position = view.center;
-}
-
-function onFrame(event) {
-if (activeItem != ring) {
-// Move the ring around:
-var offset = new Point(140, 80) * [Math.sin(event.count / 60), Math.sin(event.count / 40)];
-ring.position = view.center + offset;
-}
-
-// Remove the result of the last path operation:
-if (result)
-result.remove();
-
-// Perform the path operation on the ring:
-if (curIndex < operations.length) {
-result = square[operation](ring);
-text.content = 'square.' + operation + '(ring)';
-} else {
-result = ring[operation](square);
-text.content = 'ring.' + operation + '(square)';
-}
-result.selected = true;
-result.fillColor = colors[curIndex % colors.length];
-result.moveBelow(text);
-
-// If the result is a group, color each of its children differently:
-if (result instanceof Group) {
-for (var i = 0; i < result.children.length; i++) {
-result.children[i].fillColor = colors[i];
-}
-}
-};
-
-function onResize() {
-text.position = view.center + [0, 200];
-square.position = view.center;
-}
+*/
