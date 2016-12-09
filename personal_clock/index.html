@@ -22,21 +22,32 @@
 		}
 
 	</style>
-	<script src="../paper-full.js"></script>
-	<script src="../jquery.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="../jquery-ui.css"></style>
+	<script type="text/javascript" src="../paper-full.js"></script>
+	<script type="text/javascript" src="../jquery.js"></script>
+	<script type="text/javascript" src="../jquery-ui.js"></script>
+
+
+
+</head>
+
+<body>
+<div id="time-slider" style="width:200px"></div>
+
 	<script type="text/paperscript" canvas="canvas-1">
 
 		var width = 312;
 		var height = 390;
 
 		var count = 0;
-		var position = new paper.Point(width / 2, height / 2);
+		var centerPosition = new paper.Point(width / 2, height / 2);
 		var spiralPath = new paper.Path();
 		spiralPath.fillColor = 'red';
 		spiralPath.closed = true;
 
-
 		function growSpiral() {
+		console.log("Growing spiral");
 			count++;
 		var vector = new paper.Point({
 			angle: count * 5,
@@ -44,38 +55,44 @@
 		});
 		var rot = vector.rotate(90);
 		rot.length = .2;
-		spiralPath.add(position + vector - rot);
-		spiralPath.insert(0, position + vector + rot);
-		position += vector;
+		spiralPath.add(centerPosition + vector - rot);
+		spiralPath.insert(0, centerPosition + vector + rot);
+		centerPosition += vector;
+		spiralPath.smooth();
+
+		setTimeout(growSpiral, interval);
 	}
 
-function onFrame(event)
-{
-	for (var i = 0, l = count / 36 + 1; i < l; i++) {
-		growSpiral();
-	}
-	
-	spiralPath.smooth();
-}
+	// Set speed
+	var initialInterval = 1000;
+	var interval = initialInterval;
+	$(document).ready(function()
+	{  
+		var initialValue = 1;
+   $("#time-value").text(initialValue); 
+   $("#time-slider").slider(
+   {
+     min:1,
+     max:100,
+     value:initialValue,
+     slide:function(event,ui) 
+     {
+       $("#time-value").text(ui.value);
+       console.log("initialInterval : " + initialInterval);
+       console.log("UI VALUE: " + ui.value);
+       interval = initialInterval * (1 / (Math.E * ui.value));
+       console.log("New interval " + interval);
+     }
+  });
+	});
 
+	growSpiral();
 </script>
-</head>
-
-<body>
+Time multiplier: <span id="time-value"></span>
+	<div id="time-adjustment"></div>
 	<img id="bezel" src="../bezel.png">
 	<canvas id="canvas-1"></canvas>
+
 </body>
 
-
-<!DOCTYPE html>
-<html>
-<script src="../paper-full.js"></script>
-<body class="fullscreen">
-	
-	<div class="canvas">
-		<canvas resize="true" id="canvas-1"></canvas>
-	</div>
-</div>
-</article>
-</body>
 </html>
