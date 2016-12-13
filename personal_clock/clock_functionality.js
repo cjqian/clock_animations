@@ -2,18 +2,24 @@
  * Helper functions
  ***********************************************/
 
-function growToSize(instance, targetLength)
+// Initialization
+var sequenceArray = [];
+var sequenceIdx = -1;
+
+var width = 312;
+var height = 390;
+
+var centerPosition = new paper.Point(width / 2, height / 2);
+var interval = 150;
+
+var currentPath = null;
+var globalPath = GetNewPath();
+globalPath.visible = false;
+
+var globalPosition = new paper.Point(width / 2, height * 1 / 4);
+for (var count = 288; count >= 0; count--)
 {
-
-	var length = instance.path.segments.length;
-
-	console.log("Growing to size " + targetLength + ", currently " + length);
-	if (instance.path.segments.length >= targetLength) return;
-
-	instance.offset++;
-	instance.count--;
-
-	var angle = instance.count * 5;
+	var angle = count * 5;
 	var length = angle / 150;
 
 	var vector = new paper.Point({
@@ -25,204 +31,142 @@ function growToSize(instance, targetLength)
 
 	var rot= vector.rotate(90);
 	rot.length = 2;
-	instance.path.add(instance.position  - vector + rot);
-	instance.path.insert(0, instance.position + vector - rot);
-	instance.path.smooth();
-
-	instance.position += vector;
-
-	setTimeout(function() { return growToSize(instance, targetLength); }, interval);
+	globalPath.add(globalPosition  - vector + rot);
+	globalPath.insert(0, globalPosition + vector - rot);
+	globalPath.smooth();
+	globalPosition += vector;
 }
 
-function grow(instance) {
-	console.log("growing spiral" + instance);
-	if (instance.count < 0 || instance.offset > instance.end) return;
-
-	instance.offset++;
-	instance.count--;
-
-	var angle = instance.count * 5;
-	var length = angle / 150;
-
-	var vector = new paper.Point({
-		angle: angle,
-		length: length
-	});
-
-	vector.y = vector.y * -1;
-
-	if (instance.offset > instance.begin && instance.offset < instance.end)
-	{
-		var rot= vector.rotate(90);
-		rot.length = 2;
-		instance.path.add(instance.position  - vector + rot);
-		instance.path.insert(0, instance.position + vector - rot);
-		instance.path.smooth();
-	}
-
-	instance.position += vector;
-
-	if (instance.offset < instance.end)
-	{
-		setTimeout(function() { return grow(instance); }, interval);
-	} 
-}
-
- function shrinkToSize(instance, targetLength)
-{
-	var length = instance.path.segments.length;
-	console.log("Shrinking to size " + targetLength + ", currently " + length);
-	if (length <= targetLength) return;
-	instance.path.removeSegment(length - 1);
-	instance.path.removeSegment(0);
-	setTimeout(function() { return shrinkToSize(instance, targetLength); }, interval);
-}
-
-function deleteSpiral(instance) {
-	instance.path.removeSegments(0, instance.path.segments.length);
-}
-
-function rotateToAngle(instance, rotation)
-{
-	if (rotation == 0) return;
-	if (rotation < 1)
-	{
-		instance.path.rotate(-1);
-		setTimeout(function() { return rotateToAngle(instance, rotation + 1)}, interval);
-	}
-	else{
-		instance.path.rotate(1);
-		setTimeout(function() { return rotateToAngle(instance, rotation - 1)}, interval);	
-	}
-}
-
-
-
-function transitionInstances(current, target)
-{
-	console.log("translating");
-	console.log(current);
-
-	// Change the length of the path
-	if (current.path.segments.length > target.path.segments.length)
-	{
-		shrinkToSize(current, target.path.segments.length);
-	}
-
-	if (current.path.segments.length < target.path.segments.length)
-	{
-		growToSize(current, target.path.segments.length);
-	}
-
-	console.log(target);
-
-// Rotate the copy to match the start
-rotateToAngle(current, (target.begin - current.begin) * 5);
-}
-
-
+// Main area
+var globalInstance = null;
 
 // Returns a clean path in our desired style
 function GetNewPath()
 {
-	var spiralPath = new paper.Path(
+	var newPath = new paper.Path(
 	{
 		fillColor: 'white',
 		strokeWidth: 100
 	});
 
-	spiralPath.strokeWidth = 100;
-	return spiralPath;
+	newPath.strokeWidth = 1000;
+	return newPath;
 }
 
-// Creates a new time with randomized start and endpoints
-function CreateInstance()
-{
-	var beginOffset = parseInt(Math.random() * 80);
-	var endOffset = parseInt(beginOffset + 48 + (Math.random() * 200));
-	var currentPosition = new paper.Point(width / 2, height * 1 / 4);
+var fastInterval = .0001;
 
-	var instance = 
+function Animate(curPath, beginOffset) {
+	if (curPath.segments.length >= globalPath.segments.length) return;
+	if (curPath.segments.length > globalPath.segments.length / 3)
 	{
-		path: GetNewPath(), 
-		begin: beginOffset,
-		end: endOffset,
-		position: currentPosition,
-		offset: 0,
-		count: 288
-	};
+		// Potentially terminate
+		if (Math.random() < .05) return;
+	}
 
-	return instance;
+	var offset = (curPath.segments.length / 2) + Math.floor(beginOffset);
+	var center = globalPath.segments.length / 2;
+	var leftIdx = center - offset - 1;
+	var rightIdx = center + offset;
+	curPath.add(globalPath.segments[leftIdx]);
+	curPath.insert(0, globalPath.segments[rightIdx]);
+	curPath.smooth();
+
+	setTimeout(function() { return Animate(curPath, beginOffset); }, interval);
 }
 
-// Initialization
-var sequenceArray = [];
-var sequenceIdx = -1;
-
-var width = 312;
-var height = 390;
-
-var centerPosition = new paper.Point(width / 2, height / 2);
-
-var initialInterval = 1000;
-var interval = initialInterval;
-
-// Main area
-var globalInstance = null;
 
 /********************************************************************************
  * Keyboard functions
  **********************************************************************/
-function handleScrollUp()
-{
-	console.log("Handle scroll up. " + sequenceIdx);
-	sequenceIdx = sequenceArray.length - 1;
-	if (sequenceIdx <= 0) return;
+ /*
+ function handleScrollUp()
+ {
+ 	console.log("Up called with " + sequenceIdx);
+ 	if (sequenceIdx <= 0) return;
 
-	transitionInstances(sequenceArray[sequenceIdx], sequenceArray[sequenceIdx - 1]);
-	sequenceIdx = -1;
-}
-
-$(document).ready(function()
-{  
-	var initialValue = 1;
-	$("#time-value").text(initialValue); 
-	$("#time-slider").slider(
+ 	var difference = sequenceArray.length - sequenceIdx;
+	// 1 sequence ago
+	if (difference == 1)
 	{
-		min:1,
-		max:100000,
-		value:initialValue,
-		slide:function(event,ui) 
-		{
-			$("#time-value").text(ui.value);
-			interval = initialInterval * (1 / ui.value);
-		}
-	});
-});
+		$('#text-div').text("1 sequence ago");
+	} 
+	else 
+	{
+		$('#text-div').text(difference + " sequences ago");
+	}
 
-// Asking for a new day
-$( "button, input, a" ).click( function( event ) {
-	if (globalInstance != null) globalInstance.path.visible = false;
-	globalInstance = CreateInstance();
-	grow(globalInstance);
-	sequenceArray.push(globalInstance);
-} );
+	sequenceIdx--;
+	transitionInstances(sequenceIdx + 1, sequenceIdx);
+}
 
+function handleScrollDown()
+{
+	console.log("Called down with " + sequenceIdx);
+	if (sequenceIdx >= sequenceArray.length - 1) return;
+	sequenceIdx++;
+	console.log("lnegth " + sequenceArray.length);
+	var difference = sequenceArray.length - sequenceIdx - 1;
+	// 1 sequence ago
+	if (difference == 0)
+	{
+		$('#text-div').text("");
+	} 
+	else if (difference == 1)
+	{
+		$('#text-div').text("1 sequence ago");
+	}
+	else 
+	{
+		$('#text-div').text(difference + " sequences ago");
+	}
+
+	transitionInstances(sequenceIdx - 1, sequenceIdx);
+}
+
+*/
 $(document).keypress(function(e) {
-// w, up arrow
-console.log(e.keyCode);
-if (e.keyCode == 119)
-{
-	handleScrollUp();
-}
+	console.log(e.keyCode);
 
-if (e.keyCode == 115)
-{
-	handleScrollDown();
-}
+	// Change speed intervals
+	if (e.keyCode == 49)
+	{
+		interval = 150;
+	}
 
-if (e.keyCode == 32)
-{
-	handleKeyPress();
-}
+	if (e.keyCode == 50)
+	{
+		interval = 10;
+	}
+
+	if (e.keyCode == 51)
+	{
+		interval = .00000001;
+	}
+/*
+	// Handle key settings
+	if (e.keyCode == 119)
+	{
+		handleScrollUp();
+	}
+
+	if (e.keyCode == 115)
+	{
+		handleScrollDown();
+	}
+
+	if (e.keyCode == 32)
+	{
+		handleKeyPress();
+	}
+*/
+	// Generate new day
+	if (e.keyCode == 13)
+	{
+		if (currentPath != null) currentPath.visible = false;
+		sequenceArray.push(currentPath);
+
+		$('#text-div').text("");
+		currentPath = GetNewPath();
+		Animate(currentPath, Math.random() * 100);
+	}
 });
